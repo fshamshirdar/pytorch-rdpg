@@ -21,7 +21,7 @@ Run
 
 References: 
 ======
-`Memory-based control with recurrent neural networks <https://arxiv.org/abs/1512.04455>`
-`Continuous control with deep reinforcement learning <https://arxiv.org/abs/1509.02971>`
-`DDPG implementation using PyTorch <https://github.com/ghliu/pytorch-ddpg>`
-`PyTorch-RL <https://github.com/jingweiz/pytorch-rl>`
+* `Memory-based control with recurrent neural networks <https://arxiv.org/abs/1512.04455>`
+* `Continuous control with deep reinforcement learning <https://arxiv.org/abs/1509.02971>`
+* `DDPG implementation using PyTorch <https://github.com/ghliu/pytorch-ddpg>`
+* `PyTorch-RL <https://github.com/jingweiz/pytorch-rl>`
