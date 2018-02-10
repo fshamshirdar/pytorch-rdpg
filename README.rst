@@ -1,16 +1,10 @@
 ======
-Deep Deterministic Policy Gradient on PyTorch
+Recurrent Deterministic Policy Gradient (RDPG)
 ======
 
 Overview
 ======
-The is the implementation of `Deep Deterministic Policy Gradient <https://arxiv.org/abs/1509.02971>`_ (DDPG) using `PyTorch <https://github.com/pytorch/pytorch>`_. Part of the utilities functions such as replay buffer and random process are from `keras-rl <https://github.com/matthiasplappert/keras-rl>`_ repo. Contributes are very welcome.
-
-Dependencies
-======
-* Python 3.4
-* PyTorch 0.1.9 
-* `OpenAI Gym <https://github.com/openai/gym>`_
+`PyTorch <https://github.com/pytorch/pytorch>`_ implementation of Recurrent Deterministic Policy Gradient from the paper `Memory-based control with recurrent neural networks <https://arxiv.org/abs/1512.04455>`_ 
 
 Run
 ======
@@ -40,12 +34,9 @@ Run
 	    :height: 600px
 	    :alt: alternate text
 
-* Testing :
-
-.. code-block:: console
-
-    $ ./main.py --mode test --debug
-
-TODO
+References: 
 ======
-
+`Memory-based control with recurrent neural networks <https://arxiv.org/abs/1512.04455>`_
+`Continuous control with deep reinforcement learning <https://arxiv.org/abs/1509.02971>`_
+`DDPG implementation using PyTorch <https://github.com/ghliu/pytorch-ddpg>`_
+`PyTorch-RL <https://github.com/jingweiz/pytorch-rl>`_
