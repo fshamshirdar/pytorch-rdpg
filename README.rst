@@ -10,9 +10,12 @@ Run
 ======
 * Training:
 
-	* Pendulum-v0 
+	* Pendulum-v0
+
 	.. code-block:: console
+
 	    $ python main.py --env Pendulum-v0 --max_episode_length 1000 --trajectory_length 10 --debug
+
 
 * Testing (TODO)
 
