@@ -8,31 +8,8 @@ Overview
 
 Run
 ======
-* Training : results of two environment and their training curves:
-
-	* Pendulum-v0
-
 	.. code-block:: console
-
-	    $ ./main.py --debug
-
-	.. image:: output/Pendulum-v0-run0/validate_reward.png
-	    :width: 800px
-	    :align: left
-	    :height: 600px
-	    :alt: alternate text
-
-	* MountainCarContinuous-v0
-
-	.. code-block:: console
-
-	    $ ./main.py --env MountainCarContinuous-v0 --validate_episodes 100 --max_episode_length 2500 --ou_sigma 0.5 --debug
-
-	.. image:: output/MountainCarContinuous-v0-run0/validate_reward.png
-	    :width: 800px
-	    :align: left
-	    :height: 600px
-	    :alt: alternate text
+	    $ python main.py --env Pendulum-v0 --max_episode_length 1000 --trajectory_length 10 --debug
 
 References: 
 ======
