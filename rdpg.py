@@ -12,16 +12,19 @@ from memory import EpisodicMemory
 from agent import Agent
 from util import *
 
-class Train(object):
-    def __init__(self, nb_states, nb_actions, args):
+class RDPG(object):
+    def __init__(self, env, nb_states, nb_actions, args):
         if args.seed > 0:
             self.seed(args.seed)
+
+        self.env = env
 
         self.nb_states = nb_states
         self.nb_actions= nb_actions
 
         self.agent = Agent(nb_states, nb_actions, args)
         self.memory = EpisodicMemory(capacity=args.rmsize, max_episode_length=args.trajectory_length, window_length=args.window_length)
+        self.evaluate = Evaluator(args.validate_episodes, args.validate_steps, max_episode_length=args.max_episode_length)
 
         self.critic_optim  = Adam(self.agent.critic.parameters(), lr=args.rate)
         self.actor_optim  = Adam(self.agent.actor.parameters(), lr=args.prate)
@@ -34,6 +37,7 @@ class Train(object):
         self.discount = args.discount
         self.depsilon = 1.0 / args.epsilon
         self.warmup = args.warmup
+        self.validate_steps = args.validate_steps
 
         # 
         self.epsilon = 1.0
@@ -42,7 +46,7 @@ class Train(object):
         # 
         if USE_CUDA: self.cuda()
  
-    def train(self, num_iterations, env, evaluate, validate_steps, output, debug):
+    def train(self, num_iterations, checkpoint_path, debug):
         self.agent.is_training = True
         step = episode = episode_steps = trajectory_steps = 0
         episode_reward = 0.
@@ -52,7 +56,7 @@ class Train(object):
             while episode_steps < self.max_episode_length:
                 # reset if it is the start of episode
                 if state0 is None:
-                    state0 = deepcopy(env.reset())
+                    state0 = deepcopy(self.env.reset())
                     self.agent.reset()
 
                 # agent pick action ...
@@ -62,10 +66,10 @@ class Train(object):
                     action = self.agent.select_action(state0)
 
                 # env response with next_observation, reward, terminate_info
-                state, reward, done, info = env.step(action)
+                state, reward, done, info = self.env.step(action)
                 state = deepcopy(state)
 
-                env.render()
+                self.env.render()
 
                 # agent observe and update policy
                 self.memory.append(state0, action, reward, done)
@@ -85,7 +89,7 @@ class Train(object):
 
                 # [optional] save intermideate model
                 if step % int(num_iterations/3) == 0:
-                    self.agent.save_model(output)
+                    self.agent.save_model(checkpoint_path)
 
                 if done: # end of episode
                     if debug: prGreen('#{}: episode_reward:{} steps:{}'.format(episode,episode_reward,step))
@@ -98,9 +102,9 @@ class Train(object):
                     break
 
             # [optional] evaluate
-            if evaluate is not None and validate_steps > 0 and step % validate_steps == 0:
+            if self.evaluate is not None and self.validate_steps > 0 and step % self.validate_steps == 0:
                 policy = lambda x: self.agent.select_action(x, decay_epsilon=False)
-                validate_reward = evaluate(env, policy, debug=False, visualize=False)
+                validate_reward = self.evaluate(self.env, policy, debug=False, visualize=False)
                 if debug: prYellow('[Evaluate] Step_{:07d}: mean_reward:{}'.format(step, validate_reward))
 
 #            if step >= args.warmup and episode > args.bsize:
@@ -114,8 +118,8 @@ class Train(object):
         if len(experiences) == 0: # not enough samples
             return
 
-#        policy_loss = 0
-#        value_loss = 0
+        policy_loss_total = 0
+        value_loss_total = 0
         for t in range(len(experiences) - 1): # iterate over episodes
             target_cx = Variable(torch.zeros(self.batch_size, 50)).type(FLOAT)
             target_hx = Variable(torch.zeros(self.batch_size, 50)).type(FLOAT)
@@ -145,6 +149,8 @@ class Train(object):
 
             # value_loss = criterion(q_batch, target_q_batch)
             value_loss = F.smooth_l1_loss(current_q, target_q)
+            value_loss /= len(experiences) # divide by trajectory length
+            value_loss_total += value_loss
 
             # Actor update
             action, (hx, cx) = self.agent.actor(to_tensor(state0), (hx, cx))
@@ -152,7 +158,10 @@ class Train(object):
                 to_tensor(state0),
                 action
             ])
+            policy_loss /= len(experiences) # divide by trajectory length
+            policy_loss_total += policy_loss.mean()
 
+            # update per trajectory
             self.agent.critic.zero_grad()
             value_loss.backward()
             self.critic_optim.step()
@@ -163,23 +172,34 @@ class Train(object):
             self.actor_optim.step()
 
 
-#        policy_loss /= self.batch_size
-#        value_loss /= self.batch_size
+        # update only once
+#        policy_loss_total /= self.batch_size # divide by number of trajectories
+#        value_loss_total /= self.batch_size # divide by number of trajectories
 #
-#        print (policy_loss)
-#        print (value_loss)
-#
-#        self.critic.zero_grad()
-#        value_loss.backward()
+#        self.agent.critic.zero_grad()
+#        value_loss_total.backward()
 #        self.critic_optim.step()
 #
-#        self.actor.zero_grad()
-#        policy_loss.backward()
+#        self.agent.actor.zero_grad()
+#        policy_loss_total.backward()
 #        self.actor_optim.step()
 
         # Target update
         soft_update(self.agent.actor_target, self.agent.actor, self.tau)
         soft_update(self.agent.critic_target, self.agent.critic, self.tau)
+
+    def test(self, num_episodes, model_path, visualize=True, debug=False):
+        if self.agent.load_weights(model_path) == False:
+            prRed("model path not found")
+            return
+
+        self.agent.is_training = False
+        self.agent.eval()
+        policy = lambda x: self.agent.select_action(x, noise_enable=False, decay_epsilon=False)
+
+        for i in range(num_episodes):
+            validate_reward = self.evaluate(self.env, policy, debug=debug, visualize=visualize, save=False)
+            if debug: prYellow('[Evaluate] #{}: mean_reward:{}'.format(i, validate_reward))
 
     def seed(self,s):
         torch.manual_seed(s)

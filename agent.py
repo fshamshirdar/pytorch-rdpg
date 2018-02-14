@@ -6,8 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from model import (Actor, Critic)
-from memory import SequentialMemory
-from episodic import EpisodicMemory
+from memory import SequentialMemory, EpisodicMemory
 from random_process import OrnsteinUhlenbeckProcess
 from util import *
 
@@ -83,7 +82,7 @@ class Agent(object):
         self.critic_target.cuda()
 
     def load_weights(self, output):
-        if output is None: return
+        if output is None: return False
 
         self.actor.load_state_dict(
             torch.load('{}/actor.pkl'.format(output))
@@ -92,6 +91,8 @@ class Agent(object):
         self.critic.load_state_dict(
             torch.load('{}/critic.pkl'.format(output))
         )
+
+        return True
 
 
     def save_model(self,output):
